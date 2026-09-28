@@ -1,0 +1,1144 @@
+<title>Ghost Shell</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap">
+<style>
+  :root{
+    --bg:#05070a;
+    --panel:#0a0f0c;
+    --panel-2:#0f1712;
+    --line:#1d3324;
+    --dim:#2f6b45;
+    --green:#39ff6a;
+    --warn:#ffb84d;
+    --text:#cfeed9;
+    --stage-color:#ffb84d;
+  }
+  *{box-sizing:border-box;}
+  html{ height:100%; }
+  html, body{
+    overflow-y:auto !important;
+    overflow-x:hidden;
+  }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Share Tech Mono', 'Courier New', monospace;
+    min-height:100%;
+  }
+  .code-rain{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    pointer-events:none;
+    opacity:0;
+    transition:opacity 1s ease;
+  }
+  .code-rain.show{opacity:.6;}
+  .wrap{
+    position:relative;
+    z-index:1;
+    max-width:640px;
+    margin:0 auto;
+    padding:20px 16px 24px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .field{
+    position:relative;
+    background:#000;
+    border:1px solid var(--line);
+    border-radius:0;
+    overflow:hidden;
+    outline:none;
+    display:flex;
+    flex-direction:column;
+    box-shadow:0 6px 20px rgba(0,0,0,.5);
+  }
+  .term-bar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 10px;
+    background:#0a0a0a;
+    border-bottom:1px solid var(--line);
+  }
+  .term-dots{display:flex;gap:5px;}
+  .term-dots i{
+    display:inline-block;
+    width:7px;height:7px;
+    border-radius:50%;
+    background:#3a3a3a;
+  }
+  .term-title{
+    flex:1;
+    text-align:center;
+    font-size:12px;
+    letter-spacing:1px;
+    color:var(--dim);
+  }
+  .term-gear{
+    background:none;
+    border:none;
+    color:var(--dim);
+    font-size:14px;
+    line-height:1;
+    padding:2px 4px;
+    cursor:pointer;
+  }
+  .term-gear:hover{color:var(--green);}
+  .term-status{
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:6px 12px;
+    padding:6px 10px;
+    font-size:12px;
+    color:var(--stage-color);
+    background:#000;
+    border-bottom:1px solid var(--line);
+  }
+  #statusTime{color:var(--dim);transition:color .3s;}
+  #statusTime.urgent{color:var(--warn);animation:pulseTime .6s ease-in-out infinite;}
+  @keyframes pulseTime{ 50%{opacity:.4;} }
+  @media (prefers-reduced-motion: reduce){ #statusTime.urgent{animation:none;} }
+  .term-play{
+    position:relative;
+    height:340px;
+    overflow:hidden;
+    background:#000;
+  }
+  .bg-canvas{
+    position:absolute;
+    inset:0;
+    z-index:0;
+    display:block;
+  }
+  .handler-line{
+    position:absolute;
+    bottom:8px; left:10px; right:10px;
+    font-size:12px;
+    color:var(--stage-color);
+    z-index:2;
+    opacity:0;
+    transition:opacity .3s;
+    text-shadow:0 0 6px rgba(0,0,0,.8);
+  }
+  .handler-line.show{opacity:1;}
+  .word-el{
+    position:absolute;
+    white-space:nowrap;
+    font-size:17px;
+    padding:2px 5px;
+    border-radius:3px;
+  }
+  .word-el .done{color:var(--green);}
+  .word-el .pending{color:var(--dim);}
+  .word-el.locked{
+    background:rgba(57,255,106,0.10);
+    outline:1px solid rgba(57,255,106,0.5);
+  }
+  .word-el.breach .pending, .word-el.breach .done{color:var(--warn);}
+  .prompt{
+    font-size:15px;
+    color:var(--green);
+    background:#000;
+    border-top:1px solid var(--line);
+    padding:8px 10px;
+    white-space:nowrap;
+    overflow:hidden;
+  }
+  .cursor{
+    display:inline-block;
+    width:8px;height:15px;
+    background:var(--green);
+    vertical-align:middle;
+    margin-left:2px;
+    animation:blink 1s step-end infinite;
+  }
+  @media (prefers-reduced-motion: reduce){ .cursor{animation:none;} }
+  @keyframes blink{ 50%{opacity:0;} }
+  .settings-drawer{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:12px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .settings-drawer[hidden]{display:none;}
+  .controls-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    justify-content:space-between;
+    align-items:center;
+    font-size:14px;
+    color:var(--dim);
+  }
+  .controls-row label{display:flex;align-items:center;gap:6px;cursor:pointer;}
+  select, button{
+    font-family:'Share Tech Mono',monospace;
+    font-size:14px;
+    background:var(--panel-2);
+    color:var(--text);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:5px 10px;
+    cursor:pointer;
+  }
+  button.danger{border-color:var(--warn);color:var(--warn);background:transparent;}
+  button:focus-visible, select:focus-visible, label:focus-within{
+    outline:2px solid var(--green);
+    outline-offset:2px;
+  }
+  .toast{font-size:14px;color:var(--green);min-height:1.2em;}
+  .log-wrap[hidden]{display:none;}
+  .log-wrap{
+    border-top:1px solid var(--line);
+    padding-top:10px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    font-size:15px;
+  }
+  .log-wrap h2{font-size:13px;color:var(--green);margin:0;letter-spacing:2px;}
+  .stat-row{display:flex;justify-content:space-between;gap:10px;color:var(--dim);}
+  .stat-row b{color:var(--green);font-weight:normal;}
+  table{width:100%;border-collapse:collapse;font-size:14px;}
+  th,td{text-align:left;padding:3px 6px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;}
+  th{color:var(--dim);font-weight:normal;}
+  .log-scroll{max-height:180px;overflow-y:auto;border:1px solid var(--line);border-radius:4px;padding:0 6px;}
+  .overlay-msg{
+    position:absolute;
+    inset:0;
+    background:rgba(2,4,3,0.85);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    text-align:center;
+    padding:16px;
+    z-index:3;
+  }
+  .overlay-msg[hidden]{display:none;}
+  .overlay-msg .big{
+    color:var(--warn);
+    font-size:20px;
+    letter-spacing:4px;
+    text-shadow:0 0 10px currentColor;
+  }
+  .transmission{
+    width:100%;
+    max-width:420px;
+    border:1px solid var(--line);
+    background:rgba(0,0,0,.55);
+    box-shadow:0 4px 18px rgba(0,0,0,.5);
+  }
+  .t-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:6px 10px;
+    font-size:10px;
+    letter-spacing:1px;
+    color:var(--dim);
+    border-bottom:1px solid var(--line);
+    background:rgba(255,255,255,.02);
+  }
+  .t-dot{
+    display:inline-block;
+    width:6px;height:6px;
+    border-radius:50%;
+    background:currentColor;
+    margin-right:5px;
+    animation:blink 1.1s step-end infinite;
+  }
+  @media (prefers-reduced-motion: reduce){ .t-dot{animation:none;} }
+  .t-body{
+    padding:12px 12px;
+    display:flex;
+    flex-direction:column;
+    gap:7px;
+    max-height:190px;
+    overflow-y:auto;
+    min-height:2.4em;
+  }
+  .bubble{
+    align-self:flex-start;
+    max-width:88%;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:11px 11px 11px 3px;
+    padding:8px 11px;
+    font-size:13px;
+    line-height:1.55;
+    color:var(--text);
+    text-align:left;
+    white-space:pre-wrap;
+    word-break:break-word;
+    opacity:0;
+    transform:translateY(6px);
+    animation:bubbleIn .22s ease forwards;
+  }
+  @keyframes bubbleIn{ to{ opacity:1; transform:translateY(0); } }
+  .bubble.alert{
+    align-self:center;
+    background:rgba(255,90,90,.14);
+    border-color:var(--warn);
+    color:var(--warn);
+    font-size:22px;
+    font-weight:bold;
+    text-align:center;
+    letter-spacing:2px;
+    border-radius:8px;
+    padding:6px 22px;
+  }
+  .bubble.success{
+    align-self:center;
+    background:rgba(57,255,106,.14);
+    border-color:var(--green);
+    color:var(--green);
+    font-size:22px;
+    font-weight:bold;
+    text-align:center;
+    border-radius:8px;
+    padding:6px 22px;
+  }
+  .typing-dots{
+    align-self:flex-start;
+    display:flex;
+    gap:4px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:11px 11px 11px 3px;
+    padding:9px 13px;
+  }
+  .typing-dots i{
+    width:5px;height:5px;
+    border-radius:50%;
+    background:var(--dim);
+    animation:typingBounce 1s infinite;
+  }
+  .typing-dots i:nth-child(2){animation-delay:.15s;}
+  .typing-dots i:nth-child(3){animation-delay:.3s;}
+  @keyframes typingBounce{ 0%,60%,100%{transform:translateY(0);opacity:.4;} 30%{transform:translateY(-4px);opacity:1;} }
+  @media (prefers-reduced-motion: reduce){
+    .bubble{animation:none;opacity:1;transform:none;}
+    .typing-dots i{animation:none;opacity:.7;}
+  }
+  .overlay-hint{color:var(--dim);font-size:12px;margin-top:10px;text-align:center;}
+  .stage-banner{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+    z-index:4;
+    opacity:0;
+    font-size:20px;
+    letter-spacing:3px;
+    text-align:center;
+    padding:0 20px;
+    color:var(--stage-color);
+    text-shadow:0 0 14px currentColor;
+    transition:opacity .25s;
+  }
+  .stage-banner.show{opacity:1;}
+  .pause-overlay{
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,.78);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:5;
+    cursor:pointer;
+  }
+  .pause-overlay[hidden]{display:none;}
+  .pause-box{text-align:center;}
+  .pause-title{
+    font-size:22px;
+    letter-spacing:5px;
+    color:var(--green);
+    text-shadow:0 0 10px currentColor;
+  }
+  .pause-hint{margin-top:8px;font-size:12px;color:var(--dim);}
+  footer{text-align:center;color:var(--dim);font-size:13px;}
+</style>
+
+<canvas class="code-rain" id="codeRain" aria-hidden="true"></canvas>
+<div class="wrap">
+  <div class="field" id="field" tabindex="0" aria-label="해킹 타자 게임 화면">
+    <div class="term-bar">
+      <span class="term-dots"><i></i><i></i><i></i></span>
+      <span class="term-title">GHOST_SHELL &mdash; root@nexus_mainframe</span>
+      <button class="term-gear" id="pauseBtn" type="button" aria-label="일시정지">&#9208;</button>
+      <button class="term-gear" id="settingsBtn" type="button" aria-label="설정 열기" aria-expanded="false">&#9881;</button>
+    </div>
+    <div class="term-status">
+      <span id="statusLayer">LAYER 01 &middot; OUTER FIREWALL</span>
+      <span id="statusTime">T+00.0s</span>
+      <span id="statusDet">DET [░░░░░░░░░░] 0%</span>
+    </div>
+    <div class="term-play" id="termPlay">
+      <canvas class="bg-canvas" id="bgCanvas"></canvas>
+      <div class="handler-line" id="handlerLine"></div>
+      <div class="stage-banner" id="stageBanner"></div>
+      <div class="pause-overlay" id="pauseOverlay" hidden>
+        <div class="pause-box">
+          <div class="pause-title">PAUSED</div>
+          <div class="pause-hint">Esc 또는 클릭으로 재개</div>
+        </div>
+      </div>
+      <div class="overlay-msg" id="overlay">
+        <div class="big" id="overlayTitle">MISSION BRIEFING</div>
+        <div class="transmission" id="transmission">
+          <div class="t-head">
+            <span id="transFrom">SIGNAL: HANDLER</span>
+            <span id="transStatus"><i class="t-dot"></i>ENCRYPTED</span>
+          </div>
+          <div class="t-body" id="overlaySub"></div>
+        </div>
+        <div class="overlay-hint" id="overlayHint">Space 또는 클릭으로 임무 시작</div>
+      </div>
+    </div>
+    <div class="prompt" id="promptLine">root@ghost:~$ <span class="cursor"></span></div>
+  </div>
+
+  <div class="settings-drawer" id="settingsDrawer" hidden>
+    <div class="controls-row">
+      <label for="diffSelect">난이도
+        <select id="diffSelect">
+          <option value="normal">보통</option>
+          <option value="hard">어려움</option>
+        </select>
+      </label>
+      <label for="fxToggle"><input type="checkbox" id="fxToggle" checked> 화면 효과</label>
+      <label for="sndToggle"><input type="checkbox" id="sndToggle" checked> 사운드</label>
+    </div>
+    <div class="controls-row">
+      <button id="resetSaveBtn" class="danger">저장 초기화</button>
+      <button id="toggleLogBtn">기록 보기</button>
+    </div>
+    <div class="toast" id="toast"></div>
+
+    <div class="log-wrap" id="logSection" hidden>
+      <h2>난이도 비교 (생존시간 평균)</h2>
+      <div class="stat-row"><span>보통 평균 (n=<span id="nNormal">0</span>)</span><b id="avgNormal">-</b></div>
+      <div class="stat-row"><span>어려움 평균 (n=<span id="nHard">0</span>)</span><b id="avgHard">-</b></div>
+      <h2>최근 기록 (최대 20개)</h2>
+      <div class="log-scroll">
+        <table>
+          <thead><tr><th>#</th><th>난이도</th><th>생존(초)</th><th>클리어</th></tr></thead>
+          <tbody id="logBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <footer>로그인 불필요 · 외부 서버 통신 없음 · 기록은 이 브라우저의 localStorage에만 저장됩니다 · 실제 해킹 기법과 무관한 용어 학습용 연출입니다</footer>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var SAVE_KEY = "ghostShell_save_v2";
+  var field = document.getElementById("field");
+  var termPlay = document.getElementById("termPlay");
+  var overlay = document.getElementById("overlay");
+  var overlayTitle = document.getElementById("overlayTitle");
+  var overlaySub = document.getElementById("overlaySub");
+  var promptLine = document.getElementById("promptLine");
+  var statusLayer = document.getElementById("statusLayer");
+  var statusTime = document.getElementById("statusTime");
+  var statusDet = document.getElementById("statusDet");
+  var handlerLine = document.getElementById("handlerLine");
+  var stageBanner = document.getElementById("stageBanner");
+  var overlayHint = document.getElementById("overlayHint");
+  var transFrom = document.getElementById("transFrom");
+  var transStatus = document.getElementById("transStatus");
+  var bgCanvas = document.getElementById("bgCanvas");
+  var bgCtx = bgCanvas.getContext("2d");
+  var codeRainCanvas = document.getElementById("codeRain");
+  var codeRainCtx = codeRainCanvas.getContext("2d");
+
+  var settingsBtn = document.getElementById("settingsBtn");
+  var settingsDrawer = document.getElementById("settingsDrawer");
+  var pauseBtn = document.getElementById("pauseBtn");
+  var pauseOverlay = document.getElementById("pauseOverlay");
+  var paused = false;
+  var diffSelect = document.getElementById("diffSelect");
+  var fxToggle = document.getElementById("fxToggle");
+  var sndToggle = document.getElementById("sndToggle");
+  var resetSaveBtn = document.getElementById("resetSaveBtn");
+  var toggleLogBtn = document.getElementById("toggleLogBtn");
+  var logSection = document.getElementById("logSection");
+  var logBody = document.getElementById("logBody");
+  var toastEl = document.getElementById("toast");
+  var avgNormalEl = document.getElementById("avgNormal");
+  var avgHardEl = document.getElementById("avgHard");
+  var nNormalEl = document.getElementById("nNormal");
+  var nHardEl = document.getElementById("nHard");
+
+  settingsBtn.addEventListener("click", function(){
+    var willShow = settingsDrawer.hidden;
+    settingsDrawer.hidden = !willShow;
+    settingsBtn.setAttribute("aria-expanded", willShow ? "true" : "false");
+    settingsBtn.blur();
+    field.focus({ preventScroll: true });
+  });
+
+  function setPaused(next){
+    if (!running) return;
+    paused = next;
+    pauseOverlay.hidden = !paused;
+    if (!paused) field.focus({ preventScroll: true });
+  }
+  function togglePause(){ setPaused(!paused); }
+
+  pauseBtn.addEventListener("click", function(e){
+    e.stopPropagation();
+    togglePause();
+    pauseBtn.blur();
+  });
+  pauseOverlay.addEventListener("click", function(e){
+    e.stopPropagation();
+    togglePause();
+  });
+
+  function defaultSave(){
+    return { bestCleared: 0, runs: [], settings: { difficulty: "normal", effects: true, sound: true } };
+  }
+
+  function loadSave(){
+    var raw;
+    try { raw = localStorage.getItem(SAVE_KEY); } catch(e){ return defaultSave(); }
+    if (!raw) return defaultSave();
+    try {
+      var data = JSON.parse(raw);
+      if (!data || typeof data !== "object") throw new Error("bad shape");
+      if (typeof data.bestCleared !== "number") data.bestCleared = 0;
+      if (!Array.isArray(data.runs)) data.runs = [];
+      data.runs = data.runs.filter(function(r){
+        return r && typeof r.survivalSec === "number" && typeof r.wordsCleared === "number" &&
+          (r.difficulty === "normal" || r.difficulty === "hard");
+      });
+      if (!data.settings || typeof data.settings !== "object") data.settings = {};
+      if (data.settings.difficulty !== "normal" && data.settings.difficulty !== "hard") data.settings.difficulty = "normal";
+      if (typeof data.settings.effects !== "boolean") data.settings.effects = true;
+      if (typeof data.settings.sound !== "boolean") data.settings.sound = true;
+      return data;
+    } catch(e){
+      showToast("저장 데이터가 손상되어 초기화했습니다.");
+      return defaultSave();
+    }
+  }
+
+  function persist(){
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch(e){}
+  }
+
+  var save = loadSave();
+  var toastTimer = null;
+  function showToast(msg){
+    toastEl.textContent = msg;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.textContent = ""; }, 2600);
+  }
+
+  diffSelect.value = save.settings.difficulty;
+  fxToggle.checked = save.settings.effects;
+  sndToggle.checked = save.settings.sound;
+
+  diffSelect.addEventListener("change", function(){
+    save.settings.difficulty = diffSelect.value;
+    persist();
+    diffSelect.blur();
+    field.focus({ preventScroll: true });
+  });
+  fxToggle.addEventListener("change", function(){ save.settings.effects = fxToggle.checked; persist(); updateCodeRain(); fxToggle.blur(); });
+  sndToggle.addEventListener("change", function(){ save.settings.sound = sndToggle.checked; persist(); sndToggle.blur(); });
+
+  resetSaveBtn.addEventListener("click", function(){
+    save = defaultSave();
+    persist();
+    diffSelect.value = save.settings.difficulty;
+    fxToggle.checked = save.settings.effects;
+    sndToggle.checked = save.settings.sound;
+    renderStats();
+    showToast("저장을 초기화했습니다.");
+    resetSaveBtn.blur();
+    field.focus({ preventScroll: true });
+  });
+
+  toggleLogBtn.addEventListener("click", function(){
+    logSection.hidden = !logSection.hidden;
+    toggleLogBtn.textContent = logSection.hidden ? "기록 보기" : "기록 숨기기";
+    toggleLogBtn.blur();
+    field.focus({ preventScroll: true });
+  });
+
+  function renderStats(){
+    var last20 = save.runs.slice(-20);
+    logBody.innerHTML = "";
+    for (var i = last20.length - 1; i >= 0; i--){
+      var r = last20[i];
+      var tr = document.createElement("tr");
+      tr.innerHTML = "<td>" + (i+1) + "</td><td>" + (r.difficulty === "hard" ? "어려움" : "보통") +
+        "</td><td>" + r.survivalSec.toFixed(1) + "</td><td>" + r.wordsCleared + "</td>";
+      logBody.appendChild(tr);
+    }
+    var normalRuns = save.runs.filter(function(r){ return r.difficulty === "normal"; });
+    var hardRuns = save.runs.filter(function(r){ return r.difficulty === "hard"; });
+    nNormalEl.textContent = normalRuns.length;
+    nHardEl.textContent = hardRuns.length;
+    avgNormalEl.textContent = normalRuns.length ? (avg(normalRuns) + "초") : "-";
+    avgHardEl.textContent = hardRuns.length ? (avg(hardRuns) + "초") : "-";
+  }
+  function avg(list){
+    var s = 0;
+    for (var i=0;i<list.length;i++) s += list[i].survivalSec;
+    return (s / list.length).toFixed(1);
+  }
+
+  // ---- audio ----
+  var audioCtx = null;
+  function ensureAudio(){
+    if (!audioCtx){
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ return; }
+    }
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+  }
+  function beep(freq, dur, type, vol){
+    if (!sndToggle.checked || !audioCtx) return;
+    var t = audioCtx.currentTime;
+    var osc = audioCtx.createOscillator();
+    var gain = audioCtx.createGain();
+    osc.type = type || "square";
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(vol || 0.08, t + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + dur + 0.02);
+  }
+  function noiseBurst(dur, vol){
+    if (!sndToggle.checked || !audioCtx) return;
+    var n = Math.floor(audioCtx.sampleRate * dur);
+    var buffer = audioCtx.createBuffer(1, n, audioCtx.sampleRate);
+    var data = buffer.getChannelData(0);
+    for (var i = 0; i < n; i++) data[i] = (Math.random()*2-1) * (1 - i/n);
+    var src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+    var gain = audioCtx.createGain();
+    gain.gain.value = vol || 0.12;
+    src.connect(gain);
+    gain.connect(audioCtx.destination);
+    src.start();
+  }
+
+  // ---- word pools: real penetration-testing phase terminology (vocabulary only, not exploit code) ----
+  // each stage = one phase of the classic attack methodology (no underscores).
+  // words are drawn from a shuffled "bag" so nothing repeats until the whole
+  // stage's pool has been shown once, then it reshuffles for the next lap.
+  var STAGE_WORD_SEQUENCES = [
+    ["recon", "scan", "sniff", "whois", "probe", "trace"],
+    ["exploit", "payload", "bypass", "inject", "pivot", "spoof"],
+    ["persist", "rootkit", "tunnel", "cleanup", "wipe", "purge"]
+  ];
+  var stageWordBag = [];
+  function refillWordBag(){
+    var seq = STAGE_WORD_SEQUENCES[stage - 1] || STAGE_WORD_SEQUENCES[STAGE_WORD_SEQUENCES.length - 1];
+    stageWordBag = seq.slice();
+    for (var i = stageWordBag.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = stageWordBag[i]; stageWordBag[i] = stageWordBag[j]; stageWordBag[j] = tmp;
+    }
+  }
+  function nextWord(){
+    if (!stageWordBag.length) refillWordBag();
+    return stageWordBag.shift();
+  }
+
+  // ---- stage / layer visuals: 3 fixed stages, ending in a win instead of endless cycling ----
+  var MAX_STAGE = 3;
+  var STAGE_COLORS = ["#ffb84d", "#4dd2ff", "#39ff6a"];
+  var LAYER_NAMES = ["RECON & SCAN", "EXPLOITATION", "COVER TRACKS"];
+  var HANDLER_LINES = [
+    "[HANDLER] 레이어 {n} 돌파 확인. 계속 진행해.",
+    "[HANDLER] 좋아, 다음 레이어로 진입한다.",
+    "[HANDLER] 탐지 안정권. 속도를 올려도 좋다.",
+    "[HANDLER] 여기까지 왔군. 코어가 가까워지고 있다.",
+    "[HANDLER] 잘하고 있다. 다음 관문이다."
+  ];
+  var STAGE_SIZE = 5;
+  var TIME_LIMIT = 30;
+  var stage = 1;
+  var stageBannerTimer = null;
+  var handlerLineTimer = null;
+
+  function applyStageColor(){
+    var color = STAGE_COLORS[(stage - 1) % STAGE_COLORS.length];
+    var name = LAYER_NAMES[(stage - 1) % LAYER_NAMES.length];
+    field.style.setProperty("--stage-color", color);
+    statusLayer.textContent = "LAYER " + String(stage).padStart(2, "0") + " · " + name;
+  }
+
+  function stageUp(){
+    stage++;
+    refillWordBag();
+    applyStageColor();
+    if (stage >= MAX_STAGE){
+      codeRainWanted = true;
+      updateCodeRain();
+    }
+    var color = STAGE_COLORS[(stage - 1) % STAGE_COLORS.length];
+    stageBanner.style.color = color;
+    stageBanner.textContent = "LAYER " + (stage - 1) + " NEUTRALIZED";
+    stageBanner.classList.add("show");
+    clearTimeout(stageBannerTimer);
+    stageBannerTimer = setTimeout(function(){ stageBanner.classList.remove("show"); }, 900);
+
+    var line = HANDLER_LINES[Math.floor(Math.random() * HANDLER_LINES.length)].replace("{n}", stage - 1);
+    handlerLine.textContent = line;
+    handlerLine.classList.add("show");
+    clearTimeout(handlerLineTimer);
+    handlerLineTimer = setTimeout(function(){ handlerLine.classList.remove("show"); }, 3200);
+
+    if (audioCtx){
+      beep(523, 0.09, "sine", 0.09);
+      setTimeout(function(){ beep(659, 0.09, "sine", 0.09); }, 90);
+      setTimeout(function(){ beep(784, 0.14, "sine", 0.09); }, 180);
+    }
+  }
+
+  // background kept flat black per design direction (no procedural shapes/grid)
+  function resizeCanvas(){
+    bgCanvas.width = termPlay.clientWidth;
+    bgCanvas.height = termPlay.clientHeight;
+  }
+  function drawBackground(dt){
+    var w = bgCanvas.width, h = bgCanvas.height;
+    if (!w || !h) return;
+    bgCtx.clearRect(0, 0, w, h);
+  }
+
+  // ---- code-rain flourish shown on the outer background once the final layer is reached ----
+  var CODE_CHARS = "01{}<>/;=+-*#$%&ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  var codeRainCols = [];
+  var codeRainWanted = false;
+  var codeRainActive = false;
+  function resizeCodeRain(){
+    codeRainCanvas.width = window.innerWidth;
+    codeRainCanvas.height = window.innerHeight;
+    var cols = Math.ceil(codeRainCanvas.width / 16);
+    codeRainCols = [];
+    for (var i = 0; i < cols; i++) codeRainCols.push(Math.random() * -50);
+  }
+  window.addEventListener("resize", resizeCodeRain);
+  resizeCodeRain();
+
+  function updateCodeRain(){
+    codeRainActive = codeRainWanted && fxToggle.checked;
+    codeRainCanvas.classList.toggle("show", codeRainActive);
+    if (!codeRainActive) codeRainCtx.clearRect(0, 0, codeRainCanvas.width, codeRainCanvas.height);
+  }
+
+  function drawCodeRain(){
+    if (!codeRainActive) return;
+    var ctx = codeRainCtx;
+    ctx.fillStyle = "rgba(0,0,0,0.08)";
+    ctx.fillRect(0, 0, codeRainCanvas.width, codeRainCanvas.height);
+    ctx.fillStyle = "#39ff6a";
+    ctx.font = "14px monospace";
+    for (var i = 0; i < codeRainCols.length; i++){
+      var x = i * 16;
+      var y = codeRainCols[i] * 16;
+      var ch = CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+      ctx.fillText(ch, x, y);
+      if (y > codeRainCanvas.height && Math.random() > 0.975) codeRainCols[i] = 0;
+      codeRainCols[i]++;
+    }
+  }
+
+  var DIFF = { normal: { baseSpeed: 34 }, hard: { baseSpeed: 52 } };
+  var SPEED_RAMP = 0.008;
+  var SPAWN_BASE = 1600, SPAWN_MIN = 900, SPAWN_DECAY = 14;
+  var MAX_CONCURRENT_WORDS = 3;
+  var BREACH_PENALTY = 18, CLEAR_RELIEF = 3;
+
+  var words, elapsed, spawnTimer, detection, cleared, running, lockedWord;
+  var fieldW, fieldH;
+
+  function detBar(pct){
+    var filled = Math.max(0, Math.min(10, Math.round(pct / 10)));
+    var bar = "";
+    for (var i = 0; i < 10; i++) bar += i < filled ? "█" : "░";
+    return "DET [" + bar + "] " + Math.round(pct) + "%";
+  }
+
+  function resetGame(){
+    termPlay.querySelectorAll(".word-el").forEach(function(el){ el.remove(); });
+    words = [];
+    elapsed = 0;
+    spawnTimer = 400;
+    detection = 0;
+    cleared = 0;
+    running = true;
+    paused = false;
+    pauseOverlay.hidden = true;
+    lockedWord = null;
+    stage = 1;
+    refillWordBag();
+    applyStageColor();
+    overlay.hidden = true;
+    overlayTitle.style.color = "";
+    stageBanner.classList.remove("show");
+    handlerLine.classList.remove("show");
+    statusTime.textContent = "T-" + TIME_LIMIT.toFixed(1) + "s";
+    statusTime.classList.remove("urgent");
+    statusDet.textContent = detBar(0);
+    codeRainWanted = false;
+    updateCodeRain();
+    updatePrompt();
+  }
+
+  var BRIEFING_LINES = [
+    "코드네임 GHOST, 응답하라.",
+    "타겟: 넥서스社 메인프레임 서버.",
+    "화면에 뜨는 문자열을 순서대로 입력해서\n방어 레이어를 무력화해.",
+    "제한시간 " + TIME_LIMIT + "초.\n시간 초과되거나 탐지되면 바로 끊긴다.",
+    "행운을 빈다."
+  ];
+
+  // ---- messenger-style chat playback used for the briefing and mission-end screens ----
+  var chatToken = 0;
+  function playChat(lines, onDone){
+    var myToken = ++chatToken;
+    overlaySub.innerHTML = "";
+    var i = 0;
+    function next(){
+      if (myToken !== chatToken) return;
+      if (i >= lines.length){
+        if (onDone) onDone();
+        return;
+      }
+      var raw = lines[i];
+      var isAlert = raw && raw.alert;
+      var isSuccess = raw && raw.success;
+      var text = (raw && raw.text !== undefined) ? raw.text : raw;
+      var typing = document.createElement("div");
+      typing.className = "typing-dots";
+      typing.innerHTML = "<i></i><i></i><i></i>";
+      overlaySub.appendChild(typing);
+      overlaySub.scrollTop = overlaySub.scrollHeight;
+      setTimeout(function(){
+        if (myToken !== chatToken) return;
+        typing.remove();
+        var b = document.createElement("div");
+        b.className = "bubble" + (isAlert ? " alert" : "") + (isSuccess ? " success" : "");
+        b.textContent = text;
+        overlaySub.appendChild(b);
+        overlaySub.scrollTop = overlaySub.scrollHeight;
+        i++;
+        setTimeout(next, isAlert || isSuccess ? 500 : 360);
+      }, isAlert ? 260 : 460);
+    }
+    next();
+  }
+
+  var overlayPhase = "briefing";
+  function advanceFromOverlay(){
+    if (overlayPhase === "result") showBriefing();
+    else resetGame();
+  }
+
+  function showBriefing(){
+    running = false;
+    overlayPhase = "briefing";
+    stage = 1;
+    applyStageColor();
+    statusTime.textContent = "T-" + TIME_LIMIT.toFixed(1) + "s";
+    statusTime.classList.remove("urgent");
+    statusDet.textContent = detBar(0);
+    overlayTitle.textContent = "MISSION BRIEFING";
+    transFrom.textContent = "SIGNAL: HANDLER";
+    transStatus.innerHTML = '<i class="t-dot"></i>ENCRYPTED';
+    transStatus.style.color = "";
+    playChat(BRIEFING_LINES);
+    overlayHint.textContent = "Space 또는 클릭으로 임무 시작";
+    overlay.hidden = false;
+  }
+
+  function measure(){
+    fieldW = termPlay.clientWidth;
+    fieldH = termPlay.clientHeight;
+    resizeCanvas();
+  }
+  measure();
+  window.addEventListener("resize", measure);
+
+  function currentSpeed(){
+    var base = (DIFF[diffSelect.value] || DIFF.normal).baseSpeed;
+    return base * (1 + elapsed * SPEED_RAMP);
+  }
+
+  function spawnWord(){
+    var text = nextWord();
+    var el = document.createElement("div");
+    el.className = "word-el";
+    el.innerHTML = '<span class="pending"></span>';
+    termPlay.appendChild(el);
+    el.querySelector(".pending").textContent = text;
+    var maxLeft = Math.max(0, fieldW - el.offsetWidth - 6);
+    var left = Math.random() * maxLeft;
+    el.style.left = left + "px";
+    el.style.top = "-24px";
+    words.push({ text: text, typedIndex: 0, y: -24, el: el, done: false });
+  }
+
+  function renderWord(w){
+    var html = "";
+    if (w.typedIndex > 0) html += '<span class="done">' + w.text.slice(0, w.typedIndex) + '</span>';
+    html += '<span class="pending">' + w.text.slice(w.typedIndex) + '</span>';
+    w.el.innerHTML = html;
+  }
+
+  function updatePrompt(){
+    var typed = lockedWord ? lockedWord.text.slice(0, lockedWord.typedIndex) : "";
+    promptLine.innerHTML = "root@ghost:~$ " + typed + '<span class="cursor"></span>';
+  }
+
+  // physical-key mapping: works regardless of Korean/English IME input mode,
+  // since e.key can turn into composed Hangul while e.code always reports the physical key
+  var CODE_TO_CHAR = {};
+  for (var _c = 65; _c <= 90; _c++){ CODE_TO_CHAR["Key" + String.fromCharCode(_c)] = String.fromCharCode(_c + 32); }
+  function codeToChar(e){
+    if (CODE_TO_CHAR[e.code]) return CODE_TO_CHAR[e.code];
+    if (e.code === "Minus" && e.shiftKey) return "_";
+    // fallback when e.code isn't populated (some embedded/automated environments)
+    if (e.key && e.key.length === 1 && /[a-zA-Z_]/.test(e.key)) return e.key.toLowerCase();
+    return null;
+  }
+  function isSpaceKey(e){
+    return e.code === "Space" || e.key === " " || e.key === "Spacebar" || e.keyCode === 32;
+  }
+
+  window.addEventListener("keydown", function(e){
+    if (e.isComposing) return;
+    if (e.code === "Escape"){
+      if (running){ e.preventDefault(); togglePause(); }
+      return;
+    }
+    if (paused) return;
+    if (isSpaceKey(e)){
+      if (!running){ e.preventDefault(); advanceFromOverlay(); return; }
+    }
+    // Backspace/Arrow keys etc. default to browser navigation (back/scroll) when no
+    // text input has focus; block that here so the page never navigates away mid-game.
+    if (e.code === "Backspace" || e.code === "ArrowLeft" || e.code === "ArrowRight" || e.code === "ArrowUp" || e.code === "ArrowDown"){
+      e.preventDefault();
+      return;
+    }
+    if (!running) return;
+    var ch = codeToChar(e);
+    if (!ch) return;
+    e.preventDefault();
+    ensureAudio();
+
+    if (!lockedWord){
+      var candidates = words.filter(function(w){ return !w.done && w.text[0] === ch; });
+      if (!candidates.length) { return; }
+      candidates.sort(function(a,b){ return b.y - a.y; });
+      lockedWord = candidates[0];
+      lockedWord.el.classList.add("locked");
+    }
+    if (lockedWord.text[lockedWord.typedIndex] === ch){
+      lockedWord.typedIndex++;
+      renderWord(lockedWord);
+      beep(420 + lockedWord.typedIndex * 30, 0.05, "square", 0.06);
+      if (lockedWord.typedIndex >= lockedWord.text.length){
+        clearWord(lockedWord);
+      }
+    }
+    updatePrompt();
+  }, true);
+
+  field.addEventListener("click", function(){
+    ensureAudio();
+    if (!running) advanceFromOverlay();
+    field.focus({ preventScroll: true });
+  });
+
+  function clearWord(w){
+    w.done = true;
+    cleared++;
+    detection = Math.max(0, detection - CLEAR_RELIEF);
+    beep(880, 0.12, "sine", 0.10);
+    w.el.style.transition = "opacity .15s, transform .15s";
+    w.el.style.opacity = "0";
+    w.el.style.transform = "scale(1.15)";
+    setTimeout(function(){ w.el.remove(); }, 160);
+    words = words.filter(function(x){ return x !== w; });
+    lockedWord = null;
+    if (cleared > 0 && cleared % STAGE_SIZE === 0){
+      if (stage >= MAX_STAGE) missionComplete();
+      else stageUp();
+    }
+  }
+
+  var FIELD_SHADOW_DEFAULT = "0 6px 20px rgba(0,0,0,.5)";
+  function breachWord(w){
+    w.done = true;
+    detection = Math.min(100, detection + BREACH_PENALTY);
+    w.el.classList.add("breach");
+    if (fxToggle.checked) field.style.boxShadow = "0 6px 20px rgba(0,0,0,.5), inset 0 0 24px rgba(255,184,77,0.55)";
+    noiseBurst(0.18, 0.10);
+    setTimeout(function(){
+      w.el.remove();
+      field.style.boxShadow = FIELD_SHADOW_DEFAULT;
+    }, 220);
+    words = words.filter(function(x){ return x !== w; });
+    if (lockedWord === w) lockedWord = null;
+  }
+
+  var last = performance.now();
+  function frame(now){
+    var dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    try {
+      if (running && !paused) update(dt);
+      drawBackground(dt);
+      drawCodeRain();
+    } catch(err){
+      console.error("ghost-shell update error", err);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function update(dt){
+    elapsed += dt;
+    var speed = currentSpeed();
+    spawnTimer -= dt * 1000;
+    var interval = Math.max(SPAWN_MIN, SPAWN_BASE - elapsed * SPAWN_DECAY);
+    if (spawnTimer <= 0 && words.length < MAX_CONCURRENT_WORDS){
+      spawnTimer = interval;
+      spawnWord();
+    }
+    for (var i = words.length - 1; i >= 0; i--){
+      var w = words[i];
+      if (!w) continue;
+      w.y += speed * dt;
+      w.el.style.top = w.y + "px";
+      if (w.y > fieldH - 20 && !w.done){
+        breachWord(w);
+      }
+    }
+    var remaining = Math.max(0, TIME_LIMIT - elapsed);
+    statusTime.textContent = "T-" + remaining.toFixed(1) + "s";
+    statusTime.classList.toggle("urgent", remaining <= 10);
+    statusDet.textContent = detBar(detection);
+    if (remaining <= 0){
+      endRun("timeout");
+    } else if (detection >= 100){
+      endRun("detected");
+    }
+  }
+
+  function triggerCaughtFX(){
+    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (fxToggle.checked && !reduceMotion){
+      var flash = document.createElement("div");
+      flash.style.cssText = "position:fixed;inset:0;z-index:6;background:rgba(255,50,50,.6);pointer-events:none;transition:opacity .6s ease;";
+      document.body.appendChild(flash);
+      requestAnimationFrame(function(){ flash.style.opacity = "0"; });
+      setTimeout(function(){ flash.remove(); }, 650);
+      if (field.animate){
+        field.animate([
+          { transform: "translate(0,0)" },
+          { transform: "translate(-6px,3px)" },
+          { transform: "translate(6px,-3px)" },
+          { transform: "translate(-4px,0)" },
+          { transform: "translate(0,0)" }
+        ], { duration: 350 });
+      }
+    }
+    if (sndToggle.checked && audioCtx){
+      for (var i = 0; i < 4; i++){
+        (function(i){
+          setTimeout(function(){ beep(i % 2 === 0 ? 880 : 660, 0.18, "square", 0.10); }, i * 180);
+        })(i);
+      }
+    }
+  }
+
+  function endRun(reason){
+    running = false;
+    overlayPhase = "result";
+    var survivalSec = elapsed;
+    var difficulty = diffSelect.value;
+    save.runs.push({ ts: Date.now(), survivalSec: survivalSec, wordsCleared: cleared, difficulty: difficulty });
+    if (save.runs.length > 200) save.runs = save.runs.slice(-200);
+    if (cleared > save.bestCleared) save.bestCleared = cleared;
+    persist();
+    renderStats();
+    overlayTitle.textContent = "TRACED";
+    transFrom.textContent = "SIGNAL: LOST";
+    transStatus.innerHTML = '<i class="t-dot"></i>TERMINATED';
+    transStatus.style.color = "var(--warn)";
+    var cause = reason === "timeout" ? "시간 초과됐다." : "탐지당했다.";
+    overlayHint.textContent = "Space 또는 클릭으로 재접속";
+    overlay.hidden = false;
+    playChat([
+      cause,
+      "UPTIME " + survivalSec.toFixed(1) + "s  ·  LAYER " + stage + "/" + MAX_STAGE + "  ·  CLEARED " + cleared + "  ·  BEST " + save.bestCleared
+    ], function(){
+      noiseBurst(0.4, 0.14);
+      triggerCaughtFX();
+    });
+  }
+
+  function missionComplete(){
+    running = false;
+    overlayPhase = "result";
+    var survivalSec = elapsed;
+    var difficulty = diffSelect.value;
+    save.runs.push({ ts: Date.now(), survivalSec: survivalSec, wordsCleared: cleared, difficulty: difficulty });
+    if (save.runs.length > 200) save.runs = save.runs.slice(-200);
+    if (cleared > save.bestCleared) save.bestCleared = cleared;
+    persist();
+    renderStats();
+    overlayTitle.textContent = "ACCESS GRANTED";
+    overlayTitle.style.color = "var(--green)";
+    transFrom.textContent = "SIGNAL: HANDLER";
+    transStatus.innerHTML = '<i class="t-dot"></i>CORE BREACHED';
+    transStatus.style.color = "var(--green)";
+    overlayHint.textContent = "Space 또는 클릭으로 다시 침투";
+    overlay.hidden = false;
+    var baseReward = 3000000;
+    var speedBonus = Math.round(Math.max(0, TIME_LIMIT - survivalSec) * 100000);
+    var reward = baseReward + speedBonus;
+    var acct = 1000 + Math.floor(Math.random() * 9000);
+    playChat([
+      "코어 장악 완료. 임무 성공이다.",
+      "CLEAR TIME " + survivalSec.toFixed(1) + "s  ·  CLEARED " + cleared + " / " + cleared + "  ·  BEST " + save.bestCleared,
+      "보수 송금 완료.\n₩" + reward.toLocaleString() + " 입금됨 (계좌 ****" + acct + ")\n기본 300만 + 속도 보너스 " + speedBonus.toLocaleString() + "."
+    ], function(){
+      beep(880, 0.15, "sine", 0.12);
+      setTimeout(function(){ beep(1046, 0.2, "sine", 0.12); }, 150);
+    });
+  }
+
+  renderStats();
+  showBriefing();
+  requestAnimationFrame(frame);
+})();
+</script>
