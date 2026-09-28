@@ -24,4 +24,4 @@ https://claude.ai/artifact/3gsRptaJpfH7pDeWyFxiUe
 - 카드 2 - PC 경계 검사: 2개 해상도·연속 입력·리사이즈·포커스·일시정지·10분 실행 전부 확인 → [pc-boundary-test.md](./pc-boundary-test.md)
 - 카드 3 - 10회 전후 난이도 비교: baseSpeed 38→34, 20회 기록 · 최종값 34 선택 → [difficulty-test.md](./difficulty-test.md)
 - 카드 4 - 저장·손상 복구: 초기화·보존·빈 값·손상 값 4가지 전부 확인 → [save-recovery-test.md](./save-recovery-test.md)
-- 카드 5 - 효과와 선택권: 실패 연출은 실패 시에만 발동, "화면 효과"/"사운드" 끄면 즉시 미발동, 개인정보·비밀값 0건, 확인 방법 4항목·AI 판단 3항목 구분 모두 확인
+- 카드 5 - 효과와 선택권: 효과 발동 조건·끄기 즉시 반영·개인정보/비밀값 점검 전부 확인 → [effects-opt-out-test.md](./effects-opt-out-test.md)
